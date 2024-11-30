@@ -122,7 +122,6 @@ def cuboctahedron(pt, rotation, mode, number, container):
         next_cord = rs.PointCoordinates(next_pt)
 #        rs.HideObjects(next_pt)
         if next_cord not in container:
-            print(next_cord, container)
             if mode == 0:
                  polyline = diagonal(width, len, offset, pt_cord, next_cord)
     
@@ -153,47 +152,6 @@ def cuboctahedron(pt, rotation, mode, number, container):
 
 center_pt = rs.AddPoint( (0, 0, 0) )
 container = []
-cuboctahedron(center_pt, 0, 2, 2, container)
+cuboctahedron(center_pt, 0, 0, 2, container)
 
-def cuboctahedron_lines(pt, rotation):
-    if rotation >= 2:
-        return
-    len = 30
-    
-    pt_cord = rs.PointCoordinates(pt)
-    
-    a = pt_cord[0]
-    b = pt_cord[1]
-    c = pt_cord[2]
 
-    x = len/2
-    offsets = [
-            (x, x, 0), (x, -x, 0), (-x, x, 0), (-x, -x, 0),  # p_xy plane
-            (0, x, x), (0, x, -x), (0, -x, x), (0, -x, -x),  # p_yz plane
-            (x, 0, x), (-x, 0, x), (x, 0, -x), (-x, 0, -x)   # p_zx plane
-    ]
-            
-    pts = []
-    lines = []
-    for offset in offsets:
-        next_pt = rs.AddPoint((a + offset[0], b + offset[1], c + offset[2]))
-        pts.append(next_pt)
-        
-        if offset[0] == 0:
-            pt1 = rs.AddPoint((a + 0, b + offset[1] * 0.5, c + 0))
-            pt2 = rs.AddPoint((a + 0, b + offset[1] * 0.5, c + offset[2]))
-
-        elif offset[1] == 0:
-            pt1 = rs.AddPoint((a + offset[0] * 0, b + 0, c + offset[2] * 0.5))
-            pt2 = rs.AddPoint((a + offset[0], b + 0, c + offset[2] * 0.5))
-
-        elif offset[2] == 0:
-            pt1 = rs.AddPoint((a + offset[0] * 0.5, b + offset[1] * 0, c + 0))
-            pt2 = rs.AddPoint((a + offset[0] * 0.5, b + offset[1], c + 0))
-
-        poly_points = [pt, pt1, pt2, next_pt]
-        rs.AddPolyline(poly_points)
-        
-        cuboctahedron(next_pt, rotation + 1)
-        rs.AddTextDot(rotation, rs.PointCoordinates(next_pt))
-        

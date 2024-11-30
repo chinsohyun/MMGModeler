@@ -2,7 +2,55 @@ import rhinoscriptsyntax as rs
 
 rs.DefaultRenderer(False)
 
-def diagonal(w, l, offset, pt_cord, next_cord):
+def square(w, l, offset, pt_cord, next_cord): #3
+    rs.DefaultRenderer(False)
+    a = pt_cord[0]
+    b = pt_cord[1]
+    c = pt_cord[2]
+
+    if offset[0] == 0:
+        pt0 = rs.AddPoint((a, b , c + offset[2] * 2 * w/l))
+        pt1 = rs.AddPoint((a, b + offset[1] * 0.2, c + offset[2] * 2 * w/l))
+        pt1a = rs.AddPoint((a, b + offset[1] * 0.2, c + offset[2]* (1-2 * w/l))) 
+        pt2 = rs.AddPoint((a, b + offset[1] * 0.8 , c + offset[2]* (1-2 * w/l)))
+        pt2a = rs.AddPoint((a, b + offset[1] * 0.8 , c + offset[2]* 2 * w/l))
+        npt = rs.AddPoint((next_cord[0], next_cord[1], c + offset[2]* (1-2 * w/l)))
+        ptb = rs.AddPoint((a, b, next_cord[2]))
+        nptb = rs.AddPoint((next_cord[0], next_cord[1], c))
+        
+    elif offset[1] == 0:
+        pt0 = rs.AddPoint((a + offset[0] * 2 * w/l, b, c))
+        pt1 = rs.AddPoint((a + offset[0] * 2 * w/l, b, c + offset[2] * 0.2))
+        pt1a = rs.AddPoint((a + offset[0] * (1-2 * w/l), b, c + offset[2] * 0.2))
+        pt2 = rs.AddPoint((a + offset[0] * (1-2 * w/l), b, c + offset[2] * 0.8))
+        pt2a = rs.AddPoint((a + offset[0] * 2 * w/l, b, c + offset[2] * 0.8))
+        npt = rs.AddPoint((a + offset[0]* (1-2 * w/l), next_cord[1], next_cord[2]))
+        ptb = rs.AddPoint((next_cord[0], b, c))
+        nptb = rs.AddPoint((a, next_cord[1], next_cord[2]))
+
+    elif offset[2] == 0:
+        pt0 = rs.AddPoint((a, b + offset[1] * 2 * w/l, c))
+        pt1 = rs.AddPoint((a + offset[0] * 0.2, b + offset[1] * 2 * w/l, c))
+        pt1a = rs.AddPoint((a + offset[0] * 0.2, b + offset[1] * (1-2 * w/l), c))
+        pt2 = rs.AddPoint((a + offset[0] * 0.8, b + offset[1] * (1-2 * w/l), c))
+        pt2a = rs.AddPoint((a + offset[0] * 0.8, b + offset[1] * 2 * w/l, c))
+        npt = rs.AddPoint((next_cord[0], b + offset[1] * (1-2 * w/l), next_cord[2]))
+        ptb = rs.AddPoint((a, next_cord[1], c))
+        nptb = rs.AddPoint((next_cord[0], b, next_cord[2]))
+
+    rect = [pt1, pt1a, pt2, pt2a, pt1]
+    big_rect = [pt_cord, ptb, next_cord, nptb, pt_cord]
+#    poly_points = [pt0, pt1, pt1a, pt2, pt2a, npt]
+    rs.HideObjects(rect)
+    rs.HideObjects([ptb, nptb])
+#    polyline = rs.AddPolyline(rect)
+    polyline1 = rs.AddPolyline(big_rect)
+    
+    polyline2 = rs.AddPolyline([pt0, pt1, pt2, npt])
+#    rs.AddSweep2(big_rect, big_rect, False )
+    return [polyline1, polyline2]
+    
+def diagonal(w, l, offset, pt_cord, next_cord): #0
     rs.DefaultRenderer(False)
     a = pt_cord[0]
     b = pt_cord[1]
@@ -32,12 +80,8 @@ def diagonal(w, l, offset, pt_cord, next_cord):
     polyline = rs.AddPolyline(poly_points)
     return polyline
     
-#    lines = []
-#    line_id = rs.AddLine(pt1, pt2)
-#    lines.append(line_id)
-#    return lines
     
-def triangle_shape(w, l, offset, pt_cord, next_cord):
+def triangle_shape(w, l, offset, pt_cord, next_cord): #2
     rs.DefaultRenderer(False)
     a = pt_cord[0]
     b = pt_cord[1]
@@ -53,7 +97,7 @@ def triangle_shape(w, l, offset, pt_cord, next_cord):
         pt0 = rs.AddPoint((a + offset[0] * 2 * w/l, b, c))
         pt1 = rs.AddPoint((a + offset[0] * 2 * w/l, b, c + offset[2] * 0.5))
         pt2 = rs.AddPoint((a + offset[0] * (1-2 * w/l), b, c + offset[2] * 0.95))
-        npt = rs.AddPoint((a + offset[2]* (1-2 * w/l), next_cord[1], next_cord[2]))
+        npt = rs.AddPoint((a + offset[0]* (1-2 * w/l), next_cord[1], next_cord[2]))
 
     elif offset[2] == 0:
         pt0 = rs.AddPoint((a, b + offset[1] * 2 * w/l, c))
@@ -66,7 +110,7 @@ def triangle_shape(w, l, offset, pt_cord, next_cord):
     polyline = rs.AddPolyline(poly_points)
     return polyline
     
-def z_shape(w, l, offset, pt_cord, next_cord):
+def z_shape(w, l, offset, pt_cord, next_cord): #1
     rs.DefaultRenderer(False)
     a = pt_cord[0]
     b = pt_cord[1]
@@ -119,33 +163,39 @@ def cuboctahedron(pt, rotation, mode, number, container):
             
     for offset in offsets:
         next_pt = rs.AddPoint((a + offset[0], b + offset[1], c + offset[2]))
+        rs.HideObjects([pt, next_pt])
         next_cord = rs.PointCoordinates(next_pt)
 #        rs.HideObjects(next_pt)
         if next_cord not in container:
-            print(next_cord, container)
-            if mode == 0:
-                 polyline = diagonal(width, len, offset, pt_cord, next_cord)
+            if mode != 3:
+                if mode == 0:
+                     polyline = diagonal(width, len, offset, pt_cord, next_cord)
+        
+                elif mode == 1:
+                     polyline = z_shape(width, len, offset, pt_cord, next_cord)
+                     
+        
+                elif mode == 2:
+                     polyline = triangle_shape(width, len, offset, pt_cord, next_cord)
+                rs.HideObjects(polyline)
+                #offset
+                if offset[0] == 0:
+                    pl1 = rs.OffsetCurve(polyline, pt_cord, width, [1, 0, 0])
+                    pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [1, 0, 0])
+                if offset[1] == 0:
+                    pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 1, 0])
+                    pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 1, 0])
+                if offset[2] == 0:
+                    pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 0, 1])
+                    pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 0, 1])
+                shape1 = rs.AddLine(rs.CurveStartPoint(pl1), rs.CurveStartPoint(pl2))
+                shape2 = rs.AddLine(rs.CurveEndPoint(pl1), rs.CurveEndPoint(pl2))
+#                rs.AddSweep1(shape1, [pl1, pl2], True)
     
-            elif mode == 1:
-                 polyline = z_shape(width, len, offset, pt_cord, next_cord)
+            else:
+                 polylines = square(width, len, offset, pt_cord, next_cord)
                  
-    
-            elif mode == 2:
-                 polyline = triangle_shape(width, len, offset, pt_cord, next_cord)
-            rs.HideObjects(polyline)
-            
-            if offset[0] == 0:
-                pl1 = rs.OffsetCurve(polyline, pt_cord, width, [1, 0, 0])
-                pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [1, 0, 0])
-            if offset[1] == 0:
-                pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 1, 0])
-                pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 1, 0])
-            if offset[2] == 0:
-                pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 0, 1])
-                pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 0, 1])
-            shape1 = rs.AddLine(rs.CurveStartPoint(pl1), rs.CurveStartPoint(pl2))
-            shape2 = rs.AddLine(rs.CurveEndPoint(pl1), rs.CurveEndPoint(pl2))
-            rs.AddSweep1(shape1, [pl1, pl2], True)
+                 
             cuboctahedron(next_pt, rotation + 1, mode, number, container)
 #        rs.AddTextDot(rotation, rs.PointCoordinates(next_pt))
 
@@ -153,47 +203,6 @@ def cuboctahedron(pt, rotation, mode, number, container):
 
 center_pt = rs.AddPoint( (0, 0, 0) )
 container = []
-cuboctahedron(center_pt, 0, 2, 2, container)
+cuboctahedron(center_pt, 0, 2, 1, container)
 
-def cuboctahedron_lines(pt, rotation):
-    if rotation >= 2:
-        return
-    len = 30
-    
-    pt_cord = rs.PointCoordinates(pt)
-    
-    a = pt_cord[0]
-    b = pt_cord[1]
-    c = pt_cord[2]
 
-    x = len/2
-    offsets = [
-            (x, x, 0), (x, -x, 0), (-x, x, 0), (-x, -x, 0),  # p_xy plane
-            (0, x, x), (0, x, -x), (0, -x, x), (0, -x, -x),  # p_yz plane
-            (x, 0, x), (-x, 0, x), (x, 0, -x), (-x, 0, -x)   # p_zx plane
-    ]
-            
-    pts = []
-    lines = []
-    for offset in offsets:
-        next_pt = rs.AddPoint((a + offset[0], b + offset[1], c + offset[2]))
-        pts.append(next_pt)
-        
-        if offset[0] == 0:
-            pt1 = rs.AddPoint((a + 0, b + offset[1] * 0.5, c + 0))
-            pt2 = rs.AddPoint((a + 0, b + offset[1] * 0.5, c + offset[2]))
-
-        elif offset[1] == 0:
-            pt1 = rs.AddPoint((a + offset[0] * 0, b + 0, c + offset[2] * 0.5))
-            pt2 = rs.AddPoint((a + offset[0], b + 0, c + offset[2] * 0.5))
-
-        elif offset[2] == 0:
-            pt1 = rs.AddPoint((a + offset[0] * 0.5, b + offset[1] * 0, c + 0))
-            pt2 = rs.AddPoint((a + offset[0] * 0.5, b + offset[1], c + 0))
-
-        poly_points = [pt, pt1, pt2, next_pt]
-        rs.AddPolyline(poly_points)
-        
-        cuboctahedron(next_pt, rotation + 1)
-        rs.AddTextDot(rotation, rs.PointCoordinates(next_pt))
-        
