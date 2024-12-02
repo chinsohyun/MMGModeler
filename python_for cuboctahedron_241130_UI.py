@@ -1,18 +1,17 @@
 import rhinoscriptsyntax as rs
 import Eto.Forms as forms
 import Eto.Drawing as drawing
-import Rhino
+
+# class StopRecursionException(Exception):
+#     pass
 
 class RemoteControlPanel(forms.Form):
     def __init__(self):
-        self.Title = "Cuboctahedron Parameters"
-        self.ClientSize = drawing.Size(300, 250)
+        self.Title = "A Minimal Making Grammar"
+        self.ClientSize = drawing.Size(300, 115)
 
-        self.seed_label = forms.Label(Text="Seed:")
-        self.seed_input = forms.TextBox()
-
-        self.parameter_label = forms.Label(Text="Parameter:")
-        self.parameter_input = forms.NumericUpDown(Value=1.0, MinValue=0.1, MaxValue=10.0)
+        self.seed_label = forms.Label(Text="Seed type(0-4):")
+        self.seed_input = forms.NumericUpDown(Value=0, MinValue=0, MaxValue=4)
 
         self.mode_label = forms.Label(Text="Mode:")
         self.mode_input = forms.ComboBox()
@@ -21,51 +20,73 @@ class RemoteControlPanel(forms.Form):
         self.mode_input.Items.Add("Mode 3")
         self.mode_input.SelectedIndex = 0  
 
-        self.threshold_label = forms.Label(Text="Threshold:")
-        self.threshold_input = forms.NumericUpDown(Value=0.5, MinValue=0.0, MaxValue=1.0)
+        self.threshold_label = forms.Label(Text="Threshold(# of generation):")
+        self.threshold_input = forms.TextBox()
 
-        self.run_button = forms.Button(Text="Run Cuboctahedron")
+        self.run_button = forms.Button(Text="Run")
         self.run_button.Click += self.on_run_button_click
 
+#        self.break_button = forms.Button(Text="Break")
+#        self.break_button.Click += self.on_break_button_click
+#        self.break_button.Enabled = False  
+        
         layout = forms.DynamicLayout()
         layout.AddRow(self.seed_label, self.seed_input)
-        layout.AddRow(self.parameter_label, self.parameter_input)
         layout.AddRow(self.mode_label, self.mode_input)
         layout.AddRow(self.threshold_label, self.threshold_input)
         layout.AddRow(None, self.run_button)
+#        layout.AddRow(None, self.break_button)
+        
         self.Content = layout
+        
+        self.stop_flag = False
 
+        
     def on_run_button_click(self, sender, e):
+        try:
+            seed = int(self.seed_input.Value)
+            mode = self.mode_input.SelectedIndex  
+            threshold_str = self.threshold_input.Text
+            if threshold_str == "":  # Ensure threshold is not empty
+                rs.MessageBox("Threshold value is required.")
+                return
+            threshold = int(threshold_str)
+    
+            center_cord = (0, 0, 0)   
+            container = [center_cord]
+                    
+            if mode == 0: #mode 1
+                ps_box = [] 
+                c_box = [] 
+                brep = rs.AddSphere((0, 0, 0), 30)
+                # brep = rs.GetObject("select 3D object")
+                cuboctahedron_symmetry(center_cord, 0, seed, threshold, container, brep, ps_box, c_box)
+                rs.DeleteObject(brep)
+            elif mode == 1: #mode 2
+                cuboctahedron(center_cord, 0, seed, threshold, container)
+    
+            elif mode == 2: #mode 3
+                three_set = []  
+                center_pt = rs.AddPoint( (0, 0, 0) )
+                center_cord = rs.PointCoordinates(center_pt)   
+                container = [center_cord]
+                cuboctahedron_unit(center_cord, 0, seed, threshold, container, three_set)
+                
+        # except StopRecursionException:
+        #     # Handle stop recursion exception to exit gracefully
+        #     rs.MessageBox("Process was stopped.")
+            
+        except Exception as ex:
+            # Handle unexpected errors gracefully
+            rs.MessageBox("An error occurred: {}".format(str(ex)))
         
-        seed = int(self.seed_input.Text)
-        parameter = self.parameter_input.Value  
-        mode = self.mode_input.SelectedIndex  
-        threshold = self.threshold_input.Value 
+#        finally:
+#            # Disable the break button once the process is done
+#            self.stop_flag = True
+#            self.break_button.Enabled = False
+            
 
-        center_cord = (0, 0, 0) 
-        container = []  
-        three_set = []  
-        center_pt = rs.AddPoint( (0, 0, 0) )
-        #brep = rs.AddSphere((0, 0, 0), 30)
-        #brep = rs.GetObject("select 3D object")
-        
-        rs.HideObject(center_pt)
-        center_cord = rs.PointCoordinates(center_pt)
-        container = [center_cord]
-        ps_box = [] #A
-        c_box = [] #A
-        three_set=[] #C
-        seed = 0
-        threshold = 6   #rds s.GetInteger("Insert the rotation rumber: ", 3)
-        #cuboctahedron_symmetry(center_cord, 0, seed, threshold, container, brep, ps_box, c_box)
-        #cuboctahedron(center_cord, 0, seed, threshold, container)
-        #cuboctahedron_unit(center_cord, 0, seed, threshold, container, three_set)
-
-        cuboctahedron_unit(center_cord, seed, threshold, container, three_set)
-
-
-
-################################################################################
+###############################################################################
 
 def square(w, l, offset, pt_cord, next_cord): #3
     rs.DefaultRenderer(False)
@@ -144,8 +165,7 @@ def diagonal(w, l, offset, pt_cord, next_cord): #0
     rs.HideObjects(poly_points)
     polyline = rs.AddPolyline(poly_points)
     return polyline
-    
-    
+        
 def triangle_shape(w, l, offset, pt_cord, next_cord): #2
     rs.DefaultRenderer(False)
     a = pt_cord[0]
@@ -264,21 +284,13 @@ def surface(w, l, offset, pt_cord, next_cord): #4
 
 def cuboctahedron_symmetry(pt_cord, rotation, mode, number, container, boundary, ps_box, c_box):
     rs.DefaultRenderer(False)
-    print(boundary)
+    
     if rotation >= number:
-        
-        delete_list = []
-        for i in range(len(c_box)):
-            print("c_box", c_box)
-            if not rs.IsPointInSurface(boundary, c_box[i]):
-                delete_list.append(ps_box[i])
-                rs.HideObjects(delete_list)
-
         return
+
     length = 30
     width = 1
     
-
     container.append(pt_cord)
     a = pt_cord[0]
     b = pt_cord[1]
@@ -297,57 +309,59 @@ def cuboctahedron_symmetry(pt_cord, rotation, mode, number, container, boundary,
         rs.HideObject(next_pt)
         next_cord = rs.PointCoordinates(next_pt)
 
-        if next_cord not in container:
-            if mode in [0, 1, 2]:
-                if mode == 0:
-                     polyline = diagonal(width, length, offset, pt_cord, next_cord)
-        
-                elif mode == 1:
-                     polyline = z_shape(width, length, offset, pt_cord, next_cord)
-
-                elif mode == 2:
-                     polyline = triangle_shape(width, length, offset, pt_cord, next_cord)
-
-                rs.HideObjects(polyline)
-
-                if offset[0] == 0:
-                    pl1 = rs.OffsetCurve(polyline, pt_cord, width, [1, 0, 0])
-                    pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [1, 0, 0])
-                if offset[1] == 0:
-                    pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 1, 0])
-                    pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 1, 0])
-                if offset[2] == 0:
-                    pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 0, 1])
-                    pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 0, 1])
-                shape1 = rs.AddLine(rs.CurveStartPoint(pl1), rs.CurveStartPoint(pl2))
-                shape2 = rs.AddLine(rs.CurveEndPoint(pl1), rs.CurveEndPoint(pl2))
-                ps = rs.AddPlanarSrf([shape1, pl1, shape2, pl2])
-                rs.DeleteObjects([shape1, pl1, shape2, pl2])
-            else:
-                 if mode == 3:
-                    polylines = square(width, length, offset, pt_cord, next_cord)
-                 
-                 elif mode == 4:
-                    polylines = surface(width, length, offset, pt_cord, next_cord)
+        if rs.IsPointInSurface(boundary, next_cord):
+            if next_cord not in container:
+                if mode in [0, 1, 2]:
+                    if mode == 0:
+                            polyline = diagonal(width, length, offset, pt_cord, next_cord)
+            
+                    elif mode == 1:
+                            polyline = z_shape(width, length, offset, pt_cord, next_cord)
+    
+                    elif mode == 2:
+                            polyline = triangle_shape(width, length, offset, pt_cord, next_cord)
+    
+                    rs.HideObjects(polyline)
+    
+                    if offset[0] == 0:
+                        pl1 = rs.OffsetCurve(polyline, pt_cord, width, [1, 0, 0])
+                        pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [1, 0, 0])
+                    if offset[1] == 0:
+                        pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 1, 0])
+                        pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 1, 0])
+                    if offset[2] == 0:
+                        pl1 = rs.OffsetCurve(polyline, pt_cord, width, [0, 0, 1])
+                        pl2 = rs.OffsetCurve(polyline, pt_cord, -width, [0, 0, 1])
+                    shape1 = rs.AddLine(rs.CurveStartPoint(pl1), rs.CurveStartPoint(pl2))
+                    shape2 = rs.AddLine(rs.CurveEndPoint(pl1), rs.CurveEndPoint(pl2))
+                    ps = rs.AddPlanarSrf([shape1, pl1, shape2, pl2])
+                    rs.DeleteObjects([shape1, pl1, shape2, pl2])
+                else:
+                    if mode == 3:
+                        polylines = square(width, length, offset, pt_cord, next_cord)
                     
-                 ps = rs.AddPlanarSrf(polylines)
-                 if type(polylines) == list:
-                     rs.DeleteObjects(polylines)
-                 else:
-                    rs.DeleteObject(polylines)
-            c_box.append(next_cord)
-            ps_box.append(ps)
-           
-            cuboctahedron_symmetry(next_cord, rotation + 1, mode, number, container, brep, ps_box, c_box)
+                    elif mode == 4:
+                        polylines = surface(width, length, offset, pt_cord, next_cord)
+                    
+                        ps = rs.AddPlanarSrf(polylines)
+                    if type(polylines) == list:
+                        rs.DeleteObjects(polylines)
+                    else:
+                        rs.DeleteObject(polylines)
+                c_box.append(next_cord)
+                ps_box.append(ps)
+                
+                cuboctahedron_symmetry(next_cord, rotation + 1, mode, number, container, boundary, ps_box, c_box)
+
 
 def cuboctahedron(pt_cord, rotation, mode, number, container):
     rs.DefaultRenderer(False)
     if rotation >= number:
         return
+        
     len = 30
     width = 1
     
-
     container.append(pt_cord)
     a = pt_cord[0]
     b = pt_cord[1]
@@ -485,12 +499,13 @@ def cuboctahedron_unit(pt_cord, rotation, mode, threshold, container, three_set)
         offset_cords = point_set(pt_cord, len)
         #hide s_points
         rs.HideObjects(s_points)
-       
+        
         
     #n_points
     n_points = []
     
     if rotation == 1:  ###############
+
         pt1 = pt_cord
         pt2 = container[-1] #selected point just before
         vec = pt2 - pt1
@@ -543,6 +558,7 @@ def cuboctahedron_unit(pt_cord, rotation, mode, threshold, container, three_set)
     elif rotation == 2:###############
 
         for set in three_set:
+            #if statement necessary
             for item in set:
                 #condition unecessary
                 n_point = rs.AddPoint(rs.VectorAdd(item, pt_cord))
@@ -577,8 +593,7 @@ def cuboctahedron_unit(pt_cord, rotation, mode, threshold, container, three_set)
             
     container.append(next_cord)
     cuboctahedron_unit(pt_cord, rotation + 1, mode, threshold, container, three_set)
-
-
+        
 
 form = RemoteControlPanel()
 form.Show()
